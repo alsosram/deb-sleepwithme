@@ -152,33 +152,35 @@ show_schedule() {
 configure_schedule() {
   echo ""
 
-  local selected_days=()
   local day_names=("Monday" "Tuesday" "Wednesday" "Thursday" "Friday" "Saturday" "Sunday")
-  local toggle=("" "" "" "" "" "" "")
+  local toggle idx mark i inp day
+
+  toggle=("" "" "" "" "" "" "")
 
   info "Select shutdown days (type a number to toggle it, then 'd' when done):"
   echo ""
   while true; do
     for i in "${!DAYS_OF_WEEK[@]}"; do
-      local mark=" "
+      mark=" "
       [[ -n "${toggle[$i]}" ]] && mark="X"
       printf "  [%s] %d) %-9s (%s)\n" "$mark" $((i+1)) "${DAYS_OF_WEEK[$i]}" "${day_names[$i]}"
     done
     echo ""
-    read -rp "  Toggle day number (or 'd' when done): " inp
-    case "$inp" in
-      [Dd]) break ;;
-      [1-7])
-        local idx=$((inp-1))
-        if [[ -n "${toggle[$idx]}" ]]; then
-          toggle[$idx]=""
-        else
-          toggle[$idx]="X"
-        fi
-        echo ""
-        ;;
-      *) err "Enter 1-7 to toggle, or 'd' to finish."; echo "" ;;
-    esac
+    read -r -p "  Toggle day number (or 'd' when done): " inp
+    if [[ "$inp" == [Dd] ]]; then
+      break
+    elif [[ "$inp" =~ ^[1-7]$ ]]; then
+      idx=$((inp-1))
+      if [[ -n "${toggle[$idx]}" ]]; then
+        toggle[$idx]=""
+      else
+        toggle[$idx]="X"
+      fi
+      echo ""
+    else
+      err "Enter 1-7 to toggle, or 'd' to finish."
+      echo ""
+    fi
   done
 
   for i in "${!toggle[@]}"; do
