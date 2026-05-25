@@ -128,7 +128,7 @@ show_schedule() {
     info "No schedule configured."
     return
   fi
-  info "Current schedule:"
+
   local day_names_map
   day_names_map=([mon]="Monday" [tue]="Tuesday" [wed]="Wednesday" [thu]="Thursday" [fri]="Friday" [sat]="Saturday" [sun]="Sunday")
   local display_days=""
@@ -137,16 +137,53 @@ show_schedule() {
     [[ -n "$display_days" ]] && display_days+=", "
     display_days+="${day_names_map[$d]:-$d}"
   done
-  echo "  Days: ${display_days:-none}"
   local t12
   t12=$(format_12h "${SCHEDULE_TIME}")
-  echo "  Time: ${SCHEDULE_TIME}  (${t12})"
-  if systemctl is-active --quiet "${SERVICE_NAME}.timer" 2>/dev/null; then
-    echo "  Status: ${GREEN}active${NC}"
-    echo "  Next run: $(systemctl show -p NextElapseUSecMonotonic "${SERVICE_NAME}.timer" 2>/dev/null | cut -d= -f2 || echo 'unknown')"
+  local today
+  today=$(date +%a | tr '[:upper:]' '[:lower:]')
+
+  echo ""
+  info "Schedule summary:"
+  echo "  Days:       ${display_days}"
+  echo "  Time:       ${SCHEDULE_TIME}  (${t12})"
+  echo "  Today:      ${day_names_map[$today]:-$today}"
+
+  local today_match="no"
+  for d in "${days[@]}"; do
+    if [[ "$d" == "$today" ]]; then
+      today_match="yes"
+      break
+    fi
+  done
+  echo "  Scheduled:  ${today_match}"
+  echo ""
+
+  if [[ -f "$SHUTDOWN_SCRIPT" ]]; then
+    echo "  Shutdown script: ${GREEN}present${NC} ($SHUTDOWN_SCRIPT)"
   else
-    echo "  Status: ${RED}inactive${NC}"
+    echo "  Shutdown script: ${RED}missing${NC}"
   fi
+  if [[ -f "$SERVICE_FILE" ]]; then
+    echo "  Service unit:    ${GREEN}present${NC}"
+  else
+    echo "  Service unit:    ${RED}missing${NC}"
+  fi
+
+  echo ""
+  if systemctl is-active --quiet "${SERVICE_NAME}.timer" 2>/dev/null; then
+    echo "  Timer: ${GREEN}active${NC}"
+    local trigger
+    trigger=$(systemctl status "${SERVICE_NAME}.timer" 2>/dev/null | grep 'Trigger:' | head -1 | sed 's/.*Trigger: //')
+    if [[ -n "$trigger" ]]; then
+      echo "  Next run: ${trigger}"
+    else
+      echo "  Next run: ${YELLOW}awaiting trigger calculation${NC}"
+    fi
+  else
+    echo "  Timer: ${RED}inactive${NC}"
+    echo "  Next run: ${YELLOW}not scheduled${NC}"
+  fi
+  echo ""
 }
 
 configure_schedule() {
