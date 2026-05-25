@@ -280,24 +280,21 @@ main() {
   load_config
 
   while true; do
-    show_banner
-    echo ""
-    info "1) Configure shutdown schedule"
-    info "2) View current schedule"
-    info "3) Remove schedule"
-    info "4) Exit"
-    echo ""
-    read -rp "  Choice [1-4]: " choice
-
+    local choice
+    choice=$(whiptail --menu --title "Deb SleepWithMe" \
+      "Scheduled Server Shutdown Tool\n\nChoose an option:" \
+      14 50 4 \
+      "1" "Configure shutdown schedule" \
+      "2" "View current schedule" \
+      "3" "Remove schedule" \
+      "4" "Exit" \
+      3>&1 1>&2 2>&3) || exit 0
     case "$choice" in
       1) configure_schedule ;;
       2) show_schedule ;;
       3) remove_schedule ;;
       4) log "Goodbye."; exit 0 ;;
-      *) err "Invalid choice." ;;
     esac
-    echo ""
-    read -rp "  Press Enter to continue..."
   done
 }
 
